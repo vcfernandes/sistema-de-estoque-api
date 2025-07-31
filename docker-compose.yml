@@ -1,0 +1,25 @@
+
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:14-alpine 
+    container_name: sistema_estoque_db
+    restart: always 
+    environment:
+      POSTGRES_USER: admin          
+      POSTGRES_PASSWORD: admin123    
+      POSTGRES_DB: estoque_db       
+    ports:
+      - "5433:5432"
+    volumes:
+      # Mapeia um volume para persistir os dados do banco.
+      # Se você parar e iniciar o contêiner, os dados não serão perdidos.
+      - postgres_data:/var/lib/postgresql/data
+
+# Define os volumes que serão gerenciados pelo Docker
+volumes:
+  postgres_data:
+    driver: local
+
+    

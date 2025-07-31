@@ -1,0 +1,44 @@
+package Aquino.Sistema_de_Estoque.Controller;
+
+import Aquino.Sistema_de_Estoque.DTO.LocalizacaoDto;
+import Aquino.Sistema_de_Estoque.Model.Localizacao;
+import Aquino.Sistema_de_Estoque.Repository.LocalizacaoRepository;
+import Aquino.Sistema_de_Estoque.Service.LocalizacaoService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/localizacoes")
+@RequiredArgsConstructor
+public class LocalizacaoController {
+
+    private final LocalizacaoService localizacaoService;
+    private final LocalizacaoRepository localizacaoRepository; // Para o método de busca
+
+    // Endpoint para ALOCAR um produto em uma localização
+    // POST http://localhost:8080/api/localizacoes
+    @PostMapping
+    public ResponseEntity<Localizacao> criarLocalizacao(@Valid @RequestBody LocalizacaoDto dto) {
+        Localizacao novaLocalizacao = localizacaoService.criarLocalizacao(dto);
+        return new ResponseEntity<>(novaLocalizacao, HttpStatus.CREATED);
+    }
+
+    // Endpoint para BUSCAR todas as localizações de um produto
+    // GET http://localhost:8080/api/localizacoes/produto/1
+    @GetMapping("/produto/{produtoId}")
+    public ResponseEntity<List<Localizacao>> getLocalizacoesPorProduto(@PathVariable Long produtoId) {
+        return ResponseEntity.ok(localizacaoRepository.findByProdutoId(produtoId));
+    }
+
+    // Endpoint para REMOVER uma alocação
+    // DELETE http://localhost:8080/api/localizacoes/15 (onde 15 é o ID da localização)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletarLocalizacao(@PathVariable Long id) {
+        localizacaoService.deletarLocalizacao(id);
+        return ResponseEntity.noContent().build(); // Retorna 204 No Content
+    }
+}
