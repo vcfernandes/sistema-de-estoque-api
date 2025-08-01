@@ -49,7 +49,7 @@ O objetivo deste projeto é fornecer um backend robusto para controlar produtos,
 ### Como Executar o Projeto
 
 1.  **Pré-requisitos:**
-    *   JDK 17 ou superior
+    *   JDK 21 ou superior
     *   Maven 3.8+
     *   Docker e Docker Compose
 
