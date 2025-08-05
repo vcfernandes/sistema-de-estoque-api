@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot-SistemaDeEstoqueApplication<Sistema_de_Estoque>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "Aquino.Sistema_de_Estoque.SistemaDeEstoqueApplication",
+      "projectName": "Sistema_de_Estoque",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}
