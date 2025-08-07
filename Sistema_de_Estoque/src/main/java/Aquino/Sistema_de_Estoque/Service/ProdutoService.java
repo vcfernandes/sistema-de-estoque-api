@@ -2,15 +2,13 @@ package Aquino.Sistema_de_Estoque.Service;
 
 import Aquino.Sistema_de_Estoque.DTO.ProdutoDto;
 import Aquino.Sistema_de_Estoque.Model.Produto;
-import Aquino.Sistema_de_Estoque.Repository.LocalizacaoRepository;
-import Aquino.Sistema_de_Estoque.Repository.ProdutoRepository;
-import Aquino.Sistema_de_Estoque.Repository.TransacaoRepository;
-import jakarta.transaction.Transactional;
+import Aquino.Sistema_de_Estoque.Model.Usuario;
+import Aquino.Sistema_de_Estoque.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,68 +16,70 @@ import java.util.stream.Collectors;
 public class ProdutoService {
 
     private final ProdutoRepository produtoRepository;
-    private final TransacaoRepository transacaoRepository;// Injete para verificar o histórico
+    private final TransacaoRepository transacaoRepository;
     private final LocalizacaoRepository localizacaoRepository;
 
-    public Produto criarProduto(ProdutoDto produtoDto) {
-        // Validação básica para evitar produtos duplicados pelo nome
-        // Em uma aplicação real, você pode querer uma exceção mais específica
-        if (produtoRepository.findByNome(produtoDto.getNome()).isPresent()) {
-            throw new RuntimeException("Produto com o nome '" + produtoDto.getNome() + "' já existe.");
+    public Produto criarProduto(ProdutoDto produtoDto, Usuario usuarioLogado) {
+        if (produtoRepository.findByNomeAndUsuario(produtoDto.getNome(), usuarioLogado).isPresent()) {
+            throw new IllegalStateException("Produto com o nome '" + produtoDto.getNome() + "' já existe para este usuário.");
         }
-
         Produto novoProduto = new Produto();
         novoProduto.setNome(produtoDto.getNome());
         novoProduto.setDescricao(produtoDto.getDescricao());
         novoProduto.setPreco(produtoDto.getPreco());
-        novoProduto.setQuantidadeEmEstoque(0); // Um produto sempre começa com 0 em estoque.
-
+        novoProduto.setQuantidadeEmEstoque(0);
+        novoProduto.setUsuario(usuarioLogado);
         return produtoRepository.save(novoProduto);
     }
-    
-     @Transactional
-    public void deletarProduto(Long produtoId) {
-        if (!produtoRepository.existsById(produtoId)) {
-            throw new RuntimeException("Produto com ID " + produtoId + " não encontrado.");
-        } 
-        if (transacaoRepository.existsByProdutoId(produtoId)) {
-            throw new IllegalStateException("Não é possível deletar o produto com ID " + produtoId + " porque ele possui um histórico de transações.");
-        }
-         localizacaoRepository.deleteAll(localizacaoRepository.findByProdutoId(produtoId));
 
-         produtoRepository.deleteById(produtoId);
-    }
-
-     @Transactional // Garante que ou todos os produtos são salvos, ou nenhum é.
-    public List<Produto> criarMultiplosProdutos(List<ProdutoDto> produtosDto) {
-        // 1. Converte a lista de DTOs para uma lista de Entidades Produto
+    @Transactional
+    public List<Produto> criarMultiplosProdutos(List<ProdutoDto> produtosDto, Usuario usuarioLogado) {
         List<Produto> novosProdutos = produtosDto.stream().map(dto -> {
-            if (produtoRepository.findByNome(dto.getNome()).isPresent()) {
-                throw new RuntimeException("Produto com o nome '" + dto.getNome() + "' já existe.");
+            if (produtoRepository.findByNomeAndUsuario(dto.getNome(), usuarioLogado).isPresent()) {
+                throw new IllegalStateException("Operação em lote falhou: Produto com o nome '" + dto.getNome() + "' já existe.");
             }
-
             Produto produto = new Produto();
             produto.setNome(dto.getNome());
             produto.setDescricao(dto.getDescricao());
             produto.setPreco(dto.getPreco());
             produto.setQuantidadeEmEstoque(0);
+            produto.setUsuario(usuarioLogado);
             return produto;
         }).collect(Collectors.toList());
-
-        // 2. Salva todos os novos produtos no banco de uma só vez
         return produtoRepository.saveAll(novosProdutos);
     }
 
-    public List<Produto> listarTodosProdutos() {
-        return produtoRepository.findAllByOrderByIdAsc();
+    public List<Produto> listarProdutosDoUsuario(Usuario usuarioLogado) {
+        if (isAdmin(usuarioLogado)) {
+            return produtoRepository.findAllByOrderByIdAsc();
+        } else {
+            return produtoRepository.findAllByUsuarioOrderByIdAsc(usuarioLogado);
+        }
     }
 
-    public Optional<Produto> buscarProdutoPorId(Long id) {
-        return produtoRepository.findById(id);
+    public Produto buscarProdutoPorId(Long produtoId, Usuario usuarioLogado) {
+        Produto produto = produtoRepository.findById(produtoId)
+                .orElseThrow(() -> new RuntimeException("Produto com ID " + produtoId + " não encontrado."));
+        if (!isAdmin(usuarioLogado) && !produto.getUsuario().getId().equals(usuarioLogado.getId())) {
+            throw new SecurityException("Acesso negado para visualizar este produto.");
+        }
+        return produto;
     }
 
-    
+    @Transactional
+    public void deletarProduto(Long produtoId, Usuario usuarioLogado) {
+        Produto produto = this.buscarProdutoPorId(produtoId, usuarioLogado); // Reutiliza a lógica de busca e verificação de permissão
 
-    // Para a validação acima funcionar, precisamos adicionar um método no nosso repositório.
-    // Vá para ProdutoRepository.java e adicione o método abaixo.
+        if (transacaoRepository.existsByProdutoId(produtoId)) {
+            throw new IllegalStateException("Não é possível deletar o produto pois ele possui um histórico de transações.");
+        }
+        localizacaoRepository.deleteByProdutoId(produtoId);
+        produtoRepository.deleteById(produtoId);
+    }
+
+    // --- MÉTODO AUXILIAR CORRIGIDO ---
+    // Este método não depende de nada externo, apenas do objeto Usuario
+    private boolean isAdmin(Usuario usuario) {
+        return usuario.getRoles().stream().anyMatch(role -> "ROLE_ADMIN".equals(role.getNome()));
+    }
 }

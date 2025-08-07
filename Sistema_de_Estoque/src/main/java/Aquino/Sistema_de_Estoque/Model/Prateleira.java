@@ -1,4 +1,6 @@
 package Aquino.Sistema_de_Estoque.Model;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,13 +10,15 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "prateleiras")
 public class Prateleira {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Um código único para a estante inteira, ex: "ESTANTE-PRINCIPAL"
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false) // Não precisa ser unique globalmente, mas sim por usuário.
     private String codigo;
 
+    // --- NOVA ADIÇÃO ---
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    @JsonIgnore
+    private Usuario usuario;
 }

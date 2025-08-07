@@ -1,12 +1,15 @@
 package Aquino.Sistema_de_Estoque.Controller;
 import Aquino.Sistema_de_Estoque.DTO.ProdutoDto;
 import Aquino.Sistema_de_Estoque.Model.Produto;
+import Aquino.Sistema_de_Estoque.Model.Usuario;
+import Aquino.Sistema_de_Estoque.Repository.UsuarioRepository;
 import Aquino.Sistema_de_Estoque.Service.ProdutoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -15,7 +18,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProdutoController {
 
-    private final ProdutoService produtoService; // Injeta o nosso serviço de produtos.
+    private final ProdutoService produtoService; 
+    private final UsuarioRepository usuarioRepository;
 
     @GetMapping("/") // Mapeia para o caminho raiz
     public String home() {
@@ -23,41 +27,53 @@ public class ProdutoController {
 }
     // Endpoint para CRIAR um novo produto
     // POST http://localhost:5433/api/produtos
+   
     @PostMapping
-    public ResponseEntity<Produto> criarProduto(@Valid @RequestBody ProdutoDto produtoDto) {
-        Produto novoProduto = produtoService.criarProduto(produtoDto);
-        return new ResponseEntity<>(novoProduto, HttpStatus.CREATED); // Retorna 201 Created
-    }
+    public ResponseEntity<Produto> criarProduto(@Valid @RequestBody ProdutoDto produtoDto, Authentication authentication) {
+    Usuario usuarioLogado = getUsuarioLogado(authentication);
+    Produto novoProduto = produtoService.criarProduto(produtoDto, usuarioLogado); // Passa o usuário
+    return new ResponseEntity<>(novoProduto, HttpStatus.CREATED);
+}
 
     // Endpoint para LISTAR todos os produtos
     // GET http://localhost:5433/api/produtos
     @GetMapping
-    public ResponseEntity<List<Produto>> listarTodosProdutos() {
-        List<Produto> produtos = produtoService.listarTodosProdutos();
-        return ResponseEntity.ok(produtos); // Retorna 200 OK
-    }
+    public ResponseEntity<List<Produto>> listarProdutos(Authentication authentication) {
+    Usuario usuarioLogado = getUsuarioLogado(authentication);
+    List<Produto> produtos = produtoService.listarProdutosDoUsuario(usuarioLogado); // Passa o usuário
+    return ResponseEntity.ok(produtos);
+   }
 
     // Endpoint para BUSCAR um produto por ID
     // GET http://localhost:5433/api/produtos/1 (onde 1 é o ID)
-    @GetMapping("/{id}")
-    public ResponseEntity<Produto> buscarProdutoPorId(@PathVariable Long id) {
-        // O .map e .orElseThrow é uma forma funcional de lidar com o Optional retornado pelo serviço.
-        return produtoService.buscarProdutoPorId(id)
-                .map(produto -> ResponseEntity.ok(produto)) // Se o produto for encontrado, retorna 200 OK com o produto.
-                .orElse(ResponseEntity.notFound().build()); // Se não, retorna 404 Not Found.
+   @GetMapping("/{id}")
+    public ResponseEntity<Produto> buscarProdutoPorId(@PathVariable Long id, Authentication authentication) {
+        try {
+            Usuario usuarioLogado = getUsuarioLogado(authentication);
+            Produto produto = produtoService.buscarProdutoPorId(id, usuarioLogado);
+            return ResponseEntity.ok(produto);
+        } catch (SecurityException e) {
+            // Se o usuário não tiver permissão
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (RuntimeException e) {
+            // Se o produto não for encontrado
+            return ResponseEntity.notFound().build();
+        }
     }
 
      // POST http://localhost:8080/api/produtos/batch
-    @PostMapping("/batch")
-    public ResponseEntity<List<Produto>> criarMultiplosProdutos(@Valid @RequestBody List<ProdutoDto> produtosDto) {
-        List<Produto> produtosCriados = produtoService.criarMultiplosProdutos(produtosDto);
-        return new ResponseEntity<>(produtosCriados, HttpStatus.CREATED);
-    }
+   @PostMapping("/batch")
+    public ResponseEntity<List<Produto>> criarMultiplosProdutos(@Valid @RequestBody List<ProdutoDto> produtosDto, Authentication authentication) {
+    Usuario usuarioLogado = getUsuarioLogado(authentication);
+    List<Produto> produtosCriados = produtoService.criarMultiplosProdutos(produtosDto, usuarioLogado); // Passa o usuário
+    return new ResponseEntity<>(produtosCriados, HttpStatus.CREATED);
+   }
 
      @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletarProduto(@PathVariable Long id) {
+    public ResponseEntity<Void> deletarProduto(@PathVariable Long id, Authentication authentication) {
         try {
-            produtoService.deletarProduto(id);
+            Usuario usuarioLogado = getUsuarioLogado(authentication);
+            produtoService.deletarProduto(id, usuarioLogado);
             // Retorna 204 No Content, que é o padrão para uma deleção bem-sucedida.
             return ResponseEntity.noContent().build();
         } catch (IllegalStateException e) {
@@ -68,6 +84,15 @@ public class ProdutoController {
             // Para o caso de "produto não encontrado".
             return ResponseEntity.notFound().build();
         }
+    }
+
+   private Usuario getUsuarioLogado(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new SecurityException("Acesso não autorizado.");
+        }
+        String username = authentication.getName();
+        return usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
     }
     
 }

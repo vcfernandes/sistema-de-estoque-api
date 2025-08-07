@@ -17,7 +17,7 @@ public class Transacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne // INSTRUÇÃO: "Muitas 'Transacoes' se relacionam com um 'Produto'."
+    @ManyToOne(fetch = FetchType.LAZY, optional = false) // INSTRUÇÃO: "Muitas 'Transacoes' se relacionam com um 'Produto'."
     @JoinColumn(name = "produto_id", nullable = false) //"Para fazer a junção, crie uma coluna chamada 'produto_id' na tabela 'transacoes' "
     private Produto produto;
 

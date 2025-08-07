@@ -14,18 +14,25 @@ public class LocalizacaoService {
     private final ProdutoRepository produtoRepository;
     private final PrateleiraRepository prateleiraRepository;
 
-    public Localizacao criarLocalizacao(LocalizacaoDto dto) {
+    public Localizacao criarLocalizacao(LocalizacaoDto dto, Usuario usuarioLogado) {
+        // Busca o produto e a prateleira
         Produto produto = produtoRepository.findById(dto.getProdutoId())
                 .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
         Prateleira prateleira = prateleiraRepository.findById(dto.getPrateleiraId())
                 .orElseThrow(() -> new RuntimeException("Prateleira não encontrada"));
+
+        // *** VERIFICAÇÃO DE SEGURANÇA CRUCIAL ***
+        // Garante que o usuário só pode criar localizações para seus próprios produtos e prateleiras.
+        if (!produto.getUsuario().getId().equals(usuarioLogado.getId()) || 
+            !prateleira.getUsuario().getId().equals(usuarioLogado.getId())) {
+            throw new SecurityException("Acesso negado: O produto ou a prateleira não pertencem a você.");
+        }
 
         Localizacao novaLocalizacao = new Localizacao();
         novaLocalizacao.setProduto(produto);
         novaLocalizacao.setPrateleira(prateleira);
         novaLocalizacao.setLinha(dto.getLinha().toUpperCase());
         novaLocalizacao.setColuna(dto.getColuna());
-
         return localizacaoRepository.save(novaLocalizacao);
     }
 

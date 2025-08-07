@@ -17,14 +17,13 @@ public class Localizacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "produto_id", nullable = false)
     private Produto produto;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "prateleira_id", nullable = false)
     private Prateleira prateleira;
-
     // As coordenadas da sua imagem!
     @Column(nullable = false)
     private String linha; // Ex: "A", "B", "C"
