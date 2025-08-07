@@ -1,6 +1,8 @@
 package Aquino.Sistema_de_Estoque.Service;
 
 import Aquino.Sistema_de_Estoque.DTO.ProdutoDto;
+import Aquino.Sistema_de_Estoque.Exception.BusinessException;
+import Aquino.Sistema_de_Estoque.Exception.ResourceNotFoundException;
 import Aquino.Sistema_de_Estoque.Model.Produto;
 import Aquino.Sistema_de_Estoque.Model.Usuario;
 import Aquino.Sistema_de_Estoque.Repository.*;
@@ -21,7 +23,7 @@ public class ProdutoService {
 
     public Produto criarProduto(ProdutoDto produtoDto, Usuario usuarioLogado) {
         if (produtoRepository.findByNomeAndUsuario(produtoDto.getNome(), usuarioLogado).isPresent()) {
-            throw new IllegalStateException("Produto com o nome '" + produtoDto.getNome() + "' já existe para este usuário.");
+            throw new BusinessException("Produto com o nome '" + produtoDto.getNome() + "' já existe para este usuário.");
         }
         Produto novoProduto = new Produto();
         novoProduto.setNome(produtoDto.getNome());
@@ -36,7 +38,7 @@ public class ProdutoService {
     public List<Produto> criarMultiplosProdutos(List<ProdutoDto> produtosDto, Usuario usuarioLogado) {
         List<Produto> novosProdutos = produtosDto.stream().map(dto -> {
             if (produtoRepository.findByNomeAndUsuario(dto.getNome(), usuarioLogado).isPresent()) {
-                throw new IllegalStateException("Operação em lote falhou: Produto com o nome '" + dto.getNome() + "' já existe.");
+                throw new BusinessException("Operação em lote falhou: Produto com o nome '" + dto.getNome() + "' já existe.");
             }
             Produto produto = new Produto();
             produto.setNome(dto.getNome());
@@ -59,7 +61,7 @@ public class ProdutoService {
 
     public Produto buscarProdutoPorId(Long produtoId, Usuario usuarioLogado) {
         Produto produto = produtoRepository.findById(produtoId)
-                .orElseThrow(() -> new RuntimeException("Produto com ID " + produtoId + " não encontrado."));
+                .orElseThrow(() -> new ResourceNotFoundException("Produto com ID " + produtoId + " não encontrado."));
         if (!isAdmin(usuarioLogado) && !produto.getUsuario().getId().equals(usuarioLogado.getId())) {
             throw new SecurityException("Acesso negado para visualizar este produto.");
         }
@@ -68,10 +70,10 @@ public class ProdutoService {
 
     @Transactional
     public void deletarProduto(Long produtoId, Usuario usuarioLogado) {
-        Produto produto = this.buscarProdutoPorId(produtoId, usuarioLogado); // Reutiliza a lógica de busca e verificação de permissão
+        Produto produto = this.buscarProdutoPorId(produtoId, usuarioLogado); 
 
         if (transacaoRepository.existsByProdutoId(produtoId)) {
-            throw new IllegalStateException("Não é possível deletar o produto pois ele possui um histórico de transações.");
+            throw new BusinessException("Não é possível deletar o produto pois ele possui um histórico de transações.");
         }
         localizacaoRepository.deleteByProdutoId(produtoId);
         produtoRepository.deleteById(produtoId);

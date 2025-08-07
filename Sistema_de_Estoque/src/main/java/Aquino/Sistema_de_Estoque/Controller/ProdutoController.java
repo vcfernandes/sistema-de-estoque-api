@@ -48,17 +48,10 @@ public class ProdutoController {
     // GET http://localhost:5433/api/produtos/1 (onde 1 é o ID)
    @GetMapping("/{id}")
     public ResponseEntity<Produto> buscarProdutoPorId(@PathVariable Long id, Authentication authentication) {
-        try {
-            Usuario usuarioLogado = getUsuarioLogado(authentication);
-            Produto produto = produtoService.buscarProdutoPorId(id, usuarioLogado);
-            return ResponseEntity.ok(produto);
-        } catch (SecurityException e) {
-            // Se o usuário não tiver permissão
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        } catch (RuntimeException e) {
-            // Se o produto não for encontrado
-            return ResponseEntity.notFound().build();
-        }
+        Usuario usuarioLogado = getUsuarioLogado(authentication);
+        Produto produto = produtoService.buscarProdutoPorId(id, usuarioLogado);
+        
+        return ResponseEntity.ok(produto);
     }
 
      // POST http://localhost:8080/api/produtos/batch

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import Aquino.Sistema_de_Estoque.DTO.PrateleiraDto;
+import Aquino.Sistema_de_Estoque.Exception.BusinessException;
 import Aquino.Sistema_de_Estoque.Model.Prateleira;
 import Aquino.Sistema_de_Estoque.Model.Usuario;
 import Aquino.Sistema_de_Estoque.Repository.PrateleiraRepository;
@@ -18,7 +19,7 @@ public class PrateleiraService {
         public Prateleira criarPrateleira(PrateleiraDto dto, Usuario usuarioLogado) {
         // Validação para garantir que um usuário não tenha duas prateleiras com o mesmo código
         if (prateleiraRepository.findByCodigoAndUsuario(dto.getCodigo(), usuarioLogado).isPresent()) {
-            throw new IllegalStateException("Prateleira com o código '" + dto.getCodigo() + "' já existe para este usuário.");
+            throw new BusinessException("Prateleira com o código '" + dto.getCodigo() + "' já existe para este usuário.");
         }
 
         Prateleira novaPrateleira = new Prateleira();

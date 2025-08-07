@@ -1,6 +1,7 @@
 package Aquino.Sistema_de_Estoque.Service;
 
 import Aquino.Sistema_de_Estoque.DTO.LocalizacaoDto;
+import Aquino.Sistema_de_Estoque.Exception.ResourceNotFoundException;
 import Aquino.Sistema_de_Estoque.Model.*;
 import Aquino.Sistema_de_Estoque.Repository.*;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +18,9 @@ public class LocalizacaoService {
     public Localizacao criarLocalizacao(LocalizacaoDto dto, Usuario usuarioLogado) {
         // Busca o produto e a prateleira
         Produto produto = produtoRepository.findById(dto.getProdutoId())
-                .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Produto com ID " + dto.getProdutoId() + " não encontrado."));
         Prateleira prateleira = prateleiraRepository.findById(dto.getPrateleiraId())
-                .orElseThrow(() -> new RuntimeException("Prateleira não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Prateleira com ID " + dto.getPrateleiraId() + " não encontrada."));
 
         // *** VERIFICAÇÃO DE SEGURANÇA CRUCIAL ***
         // Garante que o usuário só pode criar localizações para seus próprios produtos e prateleiras.

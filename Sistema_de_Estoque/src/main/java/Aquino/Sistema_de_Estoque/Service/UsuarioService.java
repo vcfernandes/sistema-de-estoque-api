@@ -1,5 +1,7 @@
 package Aquino.Sistema_de_Estoque.Service;
 import Aquino.Sistema_de_Estoque.DTO.UsuarioDto;
+import Aquino.Sistema_de_Estoque.Exception.BusinessException;
+import Aquino.Sistema_de_Estoque.Exception.ResourceNotFoundException;
 import Aquino.Sistema_de_Estoque.Model.Role;
 import Aquino.Sistema_de_Estoque.Model.Usuario;
 import Aquino.Sistema_de_Estoque.Repository.RoleRepository;
@@ -24,7 +26,7 @@ public class UsuarioService {
 
     public Usuario criarUsuarioComRole(UsuarioDto dto) {
         if (usuarioRepository.findByUsername(dto.getUsername()).isPresent()) {
-            throw new RuntimeException("Usuário já existe!");
+            throw new BusinessException("Username '" + dto.getUsername() + "' já está em uso.");
         }
 
         Usuario novoUsuario = new Usuario();
@@ -34,7 +36,7 @@ public class UsuarioService {
         // Converte os nomes dos papéis (Strings) para entidades Role
         Set<Role> roles = dto.getRoles().stream()
                 .map(roleName -> roleRepository.findByNome(roleName)
-                        .orElseThrow(() -> new RuntimeException("Erro: Papel " + roleName + " não encontrado.")))
+                        .orElseThrow(() -> new ResourceNotFoundException("Erro: Papel '" + roleName + "' não encontrado.")))
                 .collect(Collectors.toSet());
         
         novoUsuario.setRoles(roles);
