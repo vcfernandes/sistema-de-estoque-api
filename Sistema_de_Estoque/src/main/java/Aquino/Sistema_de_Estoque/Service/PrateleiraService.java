@@ -6,10 +6,13 @@ import org.springframework.stereotype.Service;
 
 import Aquino.Sistema_de_Estoque.DTO.PrateleiraDto;
 import Aquino.Sistema_de_Estoque.Exception.BusinessException;
+import Aquino.Sistema_de_Estoque.Exception.ResourceNotFoundException;
 import Aquino.Sistema_de_Estoque.Model.Prateleira;
 import Aquino.Sistema_de_Estoque.Model.Usuario;
 import Aquino.Sistema_de_Estoque.Repository.PrateleiraRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+
 
 @Service
 @RequiredArgsConstructor
@@ -33,5 +36,33 @@ public class PrateleiraService {
         // Por enquanto, não há lógica de admin aqui, cada usuário vê apenas as suas.
         return prateleiraRepository.findByUsuario(usuarioLogado);
     }
-    // Adicionar métodos para deletar, etc. com verificação de dono
+
+    @Transactional
+    public Prateleira atualizarPrateleira(Long prateleiraId, PrateleiraDto prateleiraDto, Usuario usuarioLogado) {
+        // 1. Busca a prateleira no banco.
+        Prateleira prateleiraExistente = prateleiraRepository.findById(prateleiraId)
+                .orElseThrow(() -> new ResourceNotFoundException("Prateleira com ID " + prateleiraId + " não encontrada."));
+
+        // 2. VERIFICAÇÃO DE PERMISSÃO: Garante que o usuário é o dono da prateleira.
+        if (!isAdmin(usuarioLogado) && !prateleiraExistente.getUsuario().getId().equals(usuarioLogado.getId())) {
+            throw new SecurityException("Acesso negado: Você não tem permissão para modificar esta prateleira.");
+}
+
+        // 3. Validação de conflito de código.
+        prateleiraRepository.findByCodigoAndUsuario(prateleiraDto.getCodigo(), prateleiraExistente.getUsuario())
+        .ifPresent(prateleiraEncontrada -> {
+            if (!prateleiraEncontrada.getId().equals(prateleiraId)) {
+                throw new BusinessException("O código '" + prateleiraDto.getCodigo() + "' já está em uso por outra prateleira deste usuário.");
+            }
+        });
+        prateleiraExistente.setCodigo(prateleiraDto.getCodigo());
+
+
+        return prateleiraRepository.save(prateleiraExistente);
+    }
+
+    private boolean isAdmin(Usuario usuario) {
+        return usuario.getRoles().stream()
+            .anyMatch(role -> role.getNome().equals("ROLE_ADMIN"));
+    }
 }

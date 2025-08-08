@@ -1,6 +1,7 @@
 package Aquino.Sistema_de_Estoque.Security;
 import Aquino.Sistema_de_Estoque.Model.Usuario;
 import Aquino.Sistema_de_Estoque.Repository.UsuarioRepository;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,23 +21,23 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UsuarioRepository usuarioRepository;
 
     @Override
+    @Transactional(readOnly = true) // Mantenha esta anotação, ela é importante
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // 1. Busca o nosso objeto Usuario no banco de dados
-        Usuario usuario = usuarioRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado com o nome: " + username));
+    Usuario usuario = usuarioRepository.findByUsername(username)
+            .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado com o nome: " + username));
 
-        // 2. Converte nossos Roles para o formato que o Spring Security entende (GrantedAuthority)
-        Set<GrantedAuthority> authorities = usuario
-                .getRoles()
-                .stream()
-                .map(role -> new SimpleGrantedAuthority(role.getNome()))
-                .collect(Collectors.toSet());
+    Set<GrantedAuthority> authorities = usuario
+            .getRoles()
+            .stream()
+            .map(role -> new SimpleGrantedAuthority(role.getNome()))
+            .collect(Collectors.toSet());
 
-        // 3. Retorna um objeto UserDetails, que é a representação do usuário para o Spring Security
-        return new User(
-                usuario.getUsername(),
-                usuario.getPassword(),
-                authorities
-        );
-    }
+    // --- LOG DE DEBUG 1 ---
+    System.out.println(">>> CustomUserDetailsService: Carregando usuário '" + username + "' com papéis: " + authorities);
+    // --------------------
+
+    return new User(usuario.getUsername(), usuario.getPassword(), authorities);
+}
+
+    
 }

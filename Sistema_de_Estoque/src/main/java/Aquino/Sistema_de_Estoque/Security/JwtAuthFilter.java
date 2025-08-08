@@ -22,8 +22,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(@org.springframework.lang.NonNull HttpServletRequest request, @org.springframework.lang.NonNull HttpServletResponse response, @org.springframework.lang.NonNull FilterChain filterChain)
-            throws ServletException, IOException {
+        protected void doFilterInternal(@org.springframework.lang.NonNull HttpServletRequest request, 
+                                       @org.springframework.lang.NonNull HttpServletResponse response, 
+                                       @org.springframework.lang.NonNull FilterChain filterChain)
+        throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
         String token = null;
@@ -36,19 +38,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         // Se temos um username e o usuário ainda não está autenticado no contexto de segurança atual
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
+        System.out.println(">>> JwtAuthFilter: UserDetails carregado para " + username + " com papéis: " + userDetails.getAuthorities());
             // Valida o token
             if (jwtService.validateToken(token, userDetails)) {
-                // Se o token for válido, cria um objeto de autenticação
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities()
-                );
+                userDetails,null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                // Define o usuário como autenticado no contexto de segurança
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
+    
+    // Define a autenticação no contexto de segurança
+    SecurityContextHolder.getContext().setAuthentication(authToken);
+}
         }
         // Continua a cadeia de filtros
         filterChain.doFilter(request, response);

@@ -68,6 +68,22 @@ public class ProdutoService {
         return produto;
     }
 
+     @Transactional
+public Produto atualizarProduto(Long produtoId, ProdutoDto produtoDto, Usuario usuarioLogado) {
+    Produto produtoExistente = this.buscarProdutoPorId(produtoId, usuarioLogado);
+    produtoRepository.findByNomeAndUsuario(produtoDto.getNome(), produtoExistente.getUsuario())
+        .ifPresent(produtoEncontrado -> {
+            if (!produtoEncontrado.getId().equals(produtoId)) {
+                throw new BusinessException("O nome '" + produtoDto.getNome() + "' já está em uso por outro produto deste usuário.");
+            }
+        });
+    produtoExistente.setNome(produtoDto.getNome());
+    produtoExistente.setDescricao(produtoDto.getDescricao());
+    produtoExistente.setPreco(produtoDto.getPreco());
+
+    return produtoRepository.save(produtoExistente);
+}
+
     @Transactional
     public void deletarProduto(Long produtoId, Usuario usuarioLogado) {
         Produto produto = this.buscarProdutoPorId(produtoId, usuarioLogado); 

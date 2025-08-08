@@ -6,6 +6,7 @@ import Aquino.Sistema_de_Estoque.Model.Usuario;
 import Aquino.Sistema_de_Estoque.Repository.LocalizacaoRepository;
 import Aquino.Sistema_de_Estoque.Repository.UsuarioRepository;
 import Aquino.Sistema_de_Estoque.Service.LocalizacaoService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ public class LocalizacaoController {
 
     // Endpoint para ALOCAR um produto em uma localização
     // POST http://localhost:8080/api/localizacoes
+    @Operation(summary = "Criar uma nova localização",description = "Cria uma nova localização associada ao usuário autenticado. O nome da localização deve ser único por usuário.")
     @PostMapping
     public ResponseEntity<Localizacao> criarLocalizacao(@Valid @RequestBody LocalizacaoDto dto, Authentication authentication) {
     Usuario usuarioLogado = getUsuarioLogado(authentication);
@@ -34,6 +36,7 @@ public class LocalizacaoController {
 
     // Endpoint para BUSCAR todas as localizações de um produto
     // GET http://localhost:8080/api/localizacoes/produto/1
+    @Operation(summary = "Buscar Localizações por Produto",description = "Busca todas as localizações associadas a um produto específico. Retorna uma lista de localizações.")
     @GetMapping("/produto/{produtoId}")
     public ResponseEntity<List<Localizacao>> getLocalizacoesPorProduto(@PathVariable Long produtoId) {
         return ResponseEntity.ok(localizacaoRepository.findByProdutoId(produtoId));
@@ -41,6 +44,7 @@ public class LocalizacaoController {
 
     // Endpoint para REMOVER uma alocação
     // DELETE http://localhost:8080/api/localizacoes/15 (onde 15 é o ID da localização)
+    @Operation(summary = "Deletar uma localização",description = "Deleta uma localização existente associada ao usuário autenticado. Retorna 204 No Content se a deleção for bem-sucedida, ou 404 se a localização não existir.")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarLocalizacao(@PathVariable Long id) {
         localizacaoService.deletarLocalizacao(id);

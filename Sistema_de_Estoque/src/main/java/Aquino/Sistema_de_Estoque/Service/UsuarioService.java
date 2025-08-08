@@ -6,15 +6,14 @@ import Aquino.Sistema_de_Estoque.Model.Role;
 import Aquino.Sistema_de_Estoque.Model.Usuario;
 import Aquino.Sistema_de_Estoque.Repository.RoleRepository;
 import Aquino.Sistema_de_Estoque.Repository.UsuarioRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
 import java.util.stream.Collectors;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.util.Set;
 import java.util.List;
+import Aquino.Sistema_de_Estoque.DTO.UsuarioResponseDto; 
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +43,64 @@ public class UsuarioService {
         return usuarioRepository.save(novoUsuario);
     }
 
-    public List<Usuario> listarTodos() {
-        return usuarioRepository.findAll();
+    @Transactional
+    public UsuarioResponseDto atualizarUsuario(Long usuarioId, UsuarioDto usuarioDto) {
+        // 1. Encontra o usuário que será atualizado.
+        Usuario usuarioParaAtualizar = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário com ID " + usuarioId + " não encontrado."));
+
+        // 2. Valida se o novo username já não está em uso por OUTRO usuário.
+        usuarioRepository.findByUsername(usuarioDto.getUsername())
+            .ifPresent(usuarioEncontrado -> {
+                if (!usuarioEncontrado.getId().equals(usuarioId)) {
+                    throw new BusinessException("O username '" + usuarioDto.getUsername() + "' já está em uso por outro usuário.");
+                }
+            });
+        
+        // 3. Atualiza o username.
+        usuarioParaAtualizar.setUsername(usuarioDto.getUsername());
+
+        // 4. Atualiza a senha APENAS se uma nova senha for fornecida.
+        if (usuarioDto.getPassword() != null && !usuarioDto.getPassword().isEmpty()) {
+            usuarioParaAtualizar.setPassword(passwordEncoder.encode(usuarioDto.getPassword()));
+        }
+
+        // 5. Atualiza os papéis (roles).
+        if (usuarioDto.getRoles() != null && !usuarioDto.getRoles().isEmpty()) {
+            Set<Role> roles = usuarioDto.getRoles().stream()
+                .map(roleName -> roleRepository.findByNome(roleName)
+                        .orElseThrow(() -> new ResourceNotFoundException("Erro: Papel '" + roleName + "' não encontrado.")))
+                .collect(Collectors.toSet());
+            
+            // REGRA DE SEGURANÇA: Impede que o admin remova o próprio papel de admin.
+        if (usuarioParaAtualizar.getUsername().equals("admin") && roles.stream().noneMatch(r -> r.getNome().equals("ROLE_ADMIN"))) {
+                throw new BusinessException("Não é permitido remover o papel de ADMIN do usuário 'admin' principal.");
+            }
+            
+            usuarioParaAtualizar.setRoles(roles);
+        }
+
+        Usuario usuarioSalvo = usuarioRepository.save(usuarioParaAtualizar);
+        return toUsuarioResponseDto(usuarioSalvo); 
+    }
+
+     private UsuarioResponseDto toUsuarioResponseDto(Usuario usuario) {
+        UsuarioResponseDto dto = new UsuarioResponseDto();
+        dto.setId(usuario.getId());
+        dto.setUsername(usuario.getUsername());
+
+        // Mapeia o Set<Role> para um Set<String> com os nomes dos papéis
+        Set<String> roleNames = usuario.getRoles().stream()
+                .map(Role::getNome)
+                .collect(Collectors.toSet());
+        dto.setRoles(roleNames);
+
+        return dto;
+    }
+
+     public List<UsuarioResponseDto> listarTodos() {
+        return usuarioRepository.findAll().stream()
+                .map(this::toUsuarioResponseDto) // Usa nosso novo método de conversão
+                .collect(Collectors.toList());
     }
 }

@@ -7,18 +7,22 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import java.math.BigDecimal;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 @Data // DTOs também se beneficiam muito do Lombok
 public class ProdutoDto {
 
     // Não precisamos do ID aqui, pois ele é gerado pelo banco.
     // Este DTO é para criar um novo produto.
-
+    @Schema(description = "Nome único do produto para o usuário", example = "Teclado Mecânico RGB")
     @NotBlank(message = "O nome do produto não pode ser vazio ou nulo.")
     @Size(min = 3, max = 100, message = "O nome deve ter entre 3 e 100 caracteres.")
     private String nome;
-
+    
+    @Schema(description = "Descrição detalhada do produto (opcional)", example = "Teclado com switches blue e iluminação personalizável")
     private String descricao; // Descrição pode ser opcional
 
+    @Schema(description = "Preço do produto", example = "350.50")
     @NotNull(message = "O preço não pode ser nulo.")
     @Positive(message = "O preço deve ser um valor positivo.")
     private BigDecimal preco;
