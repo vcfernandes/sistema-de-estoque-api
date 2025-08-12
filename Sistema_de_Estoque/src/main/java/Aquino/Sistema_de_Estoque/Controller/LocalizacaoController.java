@@ -1,6 +1,8 @@
 package Aquino.Sistema_de_Estoque.Controller;
 
 import Aquino.Sistema_de_Estoque.DTO.LocalizacaoDto;
+import Aquino.Sistema_de_Estoque.DTO.LocalizacaoResponseDto;
+import Aquino.Sistema_de_Estoque.Mapper.LocalizacaoMapper;
 import Aquino.Sistema_de_Estoque.Model.Localizacao;
 import Aquino.Sistema_de_Estoque.Model.Usuario;
 import Aquino.Sistema_de_Estoque.Repository.LocalizacaoRepository;
@@ -13,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.security.core.Authentication;
 
 @RestController
@@ -22,7 +26,8 @@ public class LocalizacaoController {
 
     private final LocalizacaoService localizacaoService;
     private final LocalizacaoRepository localizacaoRepository;
-    private final UsuarioRepository usuarioRepository; // Para o método de busca
+    private final UsuarioRepository usuarioRepository;
+    private final LocalizacaoMapper localizacaoMapper;
 
     // Endpoint para ALOCAR um produto em uma localização
     // POST http://localhost:8080/api/localizacoes
@@ -51,6 +56,19 @@ public class LocalizacaoController {
         return ResponseEntity.noContent().build(); // Retorna 204 No Content
     }
 
+// Endpoint para buscar localizações do usuário autenticado, retornando DTOs
+    @GetMapping
+    public ResponseEntity<List<LocalizacaoResponseDto>> getLocalizacoesDoUsuario(Authentication authentication) {
+    Usuario usuarioLogado = getUsuarioLogado(authentication);
+    List<Localizacao> localizacoes = localizacaoService.findByUsuario(usuarioLogado);
+
+    // Converte a lista de entidades para uma lista de DTOs
+    List<LocalizacaoResponseDto> dtos = localizacoes.stream()
+        .map(localizacaoMapper::toDto)
+        .collect(Collectors.toList());
+
+    return ResponseEntity.ok(dtos);
+  }
      private Usuario getUsuarioLogado(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new SecurityException("Acesso não autorizado: Nenhum usuário autenticado.");

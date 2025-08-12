@@ -54,4 +54,11 @@ public class PrateleiraController {
     public ResponseEntity<List<Prateleira>> listarPrateleiras() {
         return ResponseEntity.ok(prateleiraRepository.findAll());
     }
+
+@DeleteMapping("/{id}")
+public ResponseEntity<Void> deletarPrateleira(@PathVariable Long id, Authentication authentication) {
+    Usuario usuarioLogado = getUsuarioLogado(authentication);
+    prateleiraService.deletarPrateleira(id, usuarioLogado);
+    return ResponseEntity.noContent().build();
+}
 }

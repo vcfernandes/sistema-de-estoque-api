@@ -49,12 +49,10 @@ public class UsuarioController {
     @PutMapping("/{id}")
     // @PreAuthorize("hasAuthority('ROLE_ADMIN')") 
     public ResponseEntity<UsuarioResponseDto> atualizarUsuario(@PathVariable Long id,@Valid @RequestBody UsuarioDto usuarioDto) {
-    // --- LOG DE DEBUG DEFINITIVO ---
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     System.out.println(">>> DENTRO DO MÉTODO ATUALIZAR USUÁRIO <<<");
     System.out.println("Principal: " + authentication.getPrincipal());
     System.out.println("Autoridades: " + authentication.getAuthorities());
-    // ---------------------------------
 
     UsuarioResponseDto usuarioAtualizado = usuarioService.atualizarUsuario(id, usuarioDto);
     return ResponseEntity.ok(usuarioAtualizado);

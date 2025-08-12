@@ -1,6 +1,6 @@
 package Aquino.Sistema_de_Estoque.Config;
 
-import Aquino.Sistema_de_Estoque.Security.CustomUserDetailsService;
+import Aquino.Sistema_de_Estoque.Security.CustomUserDetailsService; // Verifique o nome da sua classe
 import Aquino.Sistema_de_Estoque.Security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +17,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration; 
+import org.springframework.web.cors.CorsConfigurationSource; 
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource; 
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -28,19 +32,39 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
 
     @Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     return http
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .csrf(csrf -> csrf.disable())
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(authorize -> authorize
-            .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-            .requestMatchers("/api/usuarios/**").authenticated() 
+            // --- MUDANÇA AQUI ---
+            .requestMatchers("/api/auth/**").permitAll() 
+            .requestMatchers("/swagger-ui/**").permitAll()
+            .requestMatchers("/v3/api-docs/**").permitAll()
+            .requestMatchers("/api/**").permitAll()
+            
             .anyRequest().authenticated()
         )
         .authenticationProvider(authenticationProvider())
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .build();
 }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // Permite requisições de qualquer origem (perigoso em produção, ótimo para debug)
+        configuration.setAllowedOrigins(List.of("*"));
+        // Permite todos os métodos
+        configuration.setAllowedMethods(List.of("*"));
+        // Permite todos os cabeçalhos
+        configuration.setAllowedHeaders(List.of("*"));
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
