@@ -9,6 +9,7 @@ import Aquino.Sistema_de_Estoque.Exception.BusinessException;
 import Aquino.Sistema_de_Estoque.Exception.ResourceNotFoundException;
 import Aquino.Sistema_de_Estoque.Model.Prateleira;
 import Aquino.Sistema_de_Estoque.Model.Usuario;
+import Aquino.Sistema_de_Estoque.Repository.LocalizacaoRepository;
 import Aquino.Sistema_de_Estoque.Repository.PrateleiraRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PrateleiraService {
     private final PrateleiraRepository prateleiraRepository;
+    private final LocalizacaoRepository localizacaoRepository;
 
         public Prateleira criarPrateleira(PrateleiraDto dto, Usuario usuarioLogado) {
         // Validação para garantir que um usuário não tenha duas prateleiras com o mesmo código
@@ -27,28 +29,22 @@ public class PrateleiraService {
 
         Prateleira novaPrateleira = new Prateleira();
         novaPrateleira.setCodigo(dto.getCodigo());
-        novaPrateleira.setUsuario(usuarioLogado); // Associa a prateleira ao dono
+        novaPrateleira.setUsuario(usuarioLogado); 
 
         return prateleiraRepository.save(novaPrateleira);
     }
 
     public List<Prateleira> listarPrateleiras(Usuario usuarioLogado) {
-        // Por enquanto, não há lógica de admin aqui, cada usuário vê apenas as suas.
         return prateleiraRepository.findByUsuario(usuarioLogado);
     }
 
     @Transactional
     public Prateleira atualizarPrateleira(Long prateleiraId, PrateleiraDto prateleiraDto, Usuario usuarioLogado) {
-        // 1. Busca a prateleira no banco.
         Prateleira prateleiraExistente = prateleiraRepository.findById(prateleiraId)
                 .orElseThrow(() -> new ResourceNotFoundException("Prateleira com ID " + prateleiraId + " não encontrada."));
-
-        // 2. VERIFICAÇÃO DE PERMISSÃO: Garante que o usuário é o dono da prateleira.
         if (!isAdmin(usuarioLogado) && !prateleiraExistente.getUsuario().getId().equals(usuarioLogado.getId())) {
             throw new SecurityException("Acesso negado: Você não tem permissão para modificar esta prateleira.");
 }
-
-        // 3. Validação de conflito de código.
         prateleiraRepository.findByCodigoAndUsuario(prateleiraDto.getCodigo(), prateleiraExistente.getUsuario())
         .ifPresent(prateleiraEncontrada -> {
             if (!prateleiraEncontrada.getId().equals(prateleiraId)) {
@@ -60,6 +56,24 @@ public class PrateleiraService {
 
         return prateleiraRepository.save(prateleiraExistente);
     }
+
+    // ... dentro da classe PrateleiraService
+
+@Transactional
+public void deletarPrateleira(Long prateleiraId, Usuario usuarioLogado) {
+    Prateleira prateleira = prateleiraRepository.findById(prateleiraId)
+            .orElseThrow(() -> new ResourceNotFoundException("Prateleira com ID " + prateleiraId + " não encontrada."));
+
+    if (!prateleira.getUsuario().getId().equals(usuarioLogado.getId())) {
+        throw new SecurityException("Acesso negado: Você não tem permissão para deletar esta prateleira.");
+    }
+    
+    if (localizacaoRepository.existsByPrateleiraId(prateleiraId)) {
+        throw new BusinessException("Não é possível deletar a prateleira pois ela está em uso por uma ou mais localizações de produtos.");
+    }
+
+    prateleiraRepository.delete(prateleira);
+}
 
     private boolean isAdmin(Usuario usuario) {
         return usuario.getRoles().stream()

@@ -5,6 +5,9 @@ import Aquino.Sistema_de_Estoque.Exception.ResourceNotFoundException;
 import Aquino.Sistema_de_Estoque.Model.*;
 import Aquino.Sistema_de_Estoque.Repository.*;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -43,4 +46,8 @@ public class LocalizacaoService {
         }
         localizacaoRepository.deleteById(localizacaoId);
     }
+
+    public List<Localizacao> findByUsuario(Usuario usuarioLogado) {
+    return localizacaoRepository.findAllByUsuario(usuarioLogado);
+}
 }
